@@ -203,7 +203,8 @@ class ParisFashionShop {
         for (const [color, links] of Object.entries(colors)) {
             if (oldColors.includes(color)) {
                 let slot = 1
-                for (const link of links) {
+                for (const link of links) 
+                {
                     const imgSrc = await page.goto(link)
                     if (imgSrc) {
                         const imgBuffer = await imgSrc.buffer()
@@ -215,6 +216,7 @@ class ParisFashionShop {
                     } else {
                         throw new Error("Une erreur est survenue lors du téléchargement")
                     }
+                    slot++
                 }
             }
         }
