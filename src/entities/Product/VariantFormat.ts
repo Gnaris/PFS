@@ -1,4 +1,4 @@
-class NewVariantFormat {
+class VariantFormat {
     public type: "ITEM" | "PACK" = "ITEM";
     public discounted_price_eur_ex_vat = 0;
     public custom_suffix = "";
@@ -17,4 +17,4 @@ class NewVariantFormat {
     }
 }
 
-export default NewVariantFormat;
+export default VariantFormat;

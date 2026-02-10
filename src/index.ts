@@ -1,4 +1,11 @@
-import ParisFashionShop from "./entities/PFS.js"
+import ParisFashionShop from "./entities/ParisFashionShop.js"
+import ParisFashionShopOrder from "./entities/ParisFashionShopOrder.js"
+import ParisFashionShopProduct from "./entities/ParisFashionShopProduct.js"
 
-const pfs = await new ParisFashionShop().connect("MAIL", "MDP")
-await pfs.refreshPage({page : 1, nbProduct : 1})
+const session = await new ParisFashionShop().connect("princesse.fcenter@gmail.com", "0951869879Chen")
+
+// const PFSProduct = new ParisFashionShopProduct(session.getToken())
+// await PFSProduct.refreshPage({page : 500, nbProduct : 3})
+
+const PFSOrder = new ParisFashionShopOrder(session.getToken())
+await PFSOrder.getOrderSummary()

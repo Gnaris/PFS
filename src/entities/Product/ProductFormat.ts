@@ -1,8 +1,6 @@
-import NewVariantFormat from "./NewVariantFormat.js"
+import VariantFormat from "./VariantFormat.js"
 
-
-
-class NewProductFormat {
+class ProductFormat {
 
     public lining_composition = []
     constructor(
@@ -29,10 +27,10 @@ class NewProductFormat {
         public season_name: string,
         public country_of_manufacture: string,
         public material_composition: { id: string, value: number }[],
-        public variants: NewVariantFormat[]
+        public variants: VariantFormat[]
     ) { }
 }
 
 
 
-export default NewProductFormat
+export default ProductFormat

@@ -1,4 +1,4 @@
-class NewProduct{
+class Product{
     public lining_composition = []
     constructor(
         public id : string,
@@ -17,4 +17,4 @@ class NewProduct{
     ){}
 }
 
-export default NewProduct
+export default Product

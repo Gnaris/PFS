@@ -1,4 +1,3 @@
-import fs from "fs"
 import FormData from "form-data";
 import nodeFetch from "node-fetch"
 import puppeteer, { Page } from "puppeteer";
@@ -6,48 +5,17 @@ import sharp from "sharp";
 
 import Token from "./Token.js";
 
-import OldProductVariant from "./OldProductVariant.js";
-import OldProduct from "./OldProduct.js";
-import OldProductDetail from "./OldProductDetail.js";
-
-import NewVariantFormat from "./NewVariantFormat.js";
-import NewProduct from "./NewProduct.js";
-import NewProductFormat from "./NewProductFormat.js";
-import NewProductImageFormat from "./NewProductImageFormat.js";
+import VariantFormat from "./Product/VariantFormat.js";
+import Product from "./Product/Product.js";
+import ProductFormat from "./Product/ProductFormat.js";
+import ImageFormat from "./Product/ImageFormat.js";
+import { OldProduct, OldProductDetail, OldProductVariant } from "../types/OldProduct.js";
 
 
-class ParisFashionShop {
+class ParisFashionShopProduct {
 
-    public token: Token | null = null;
+    constructor(public token : Token){}
 
-    public async connect(email: string, password: string) {
-        const dateNow = new Date(new Date().toLocaleString("en-US", { timeZone: "Europe/Paris" }));
-        dateNow.setMinutes(dateNow.getMinutes() + 10)
-
-        const tokenFile = fs.readFileSync("token.json", "utf-8")
-        let token = tokenFile ? JSON.parse(tokenFile) as Token : null
-
-        if (!token || !token.access_token || new Date(token.expires_at) < dateNow || token.email != email || token.password != password) {
-            const TokenResponse = await fetch("https://wholesaler-api.parisfashionshops.com/api/v1/oauth/token", {
-                method: "post",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ email, password }),
-            });
-            const newToken = await TokenResponse.json() as Token | { message: string }
-            if (!TokenResponse.ok || "message" in newToken) {
-                fs.writeFileSync("token.json", JSON.stringify(newToken))
-                throw new Error("email ou mot de passe incorrect")
-            }
-            token = newToken
-            token.email = email
-            token.password = password
-            fs.writeFileSync("token.json", JSON.stringify(token))
-        }
-        this.token = token
-        return this
-    }
 
     public async refreshPage({ page, nbProduct, reference = undefined, blacklistRef }: { page: number, nbProduct: number, reference?: string, blacklistRef?: string[] }) {
         const oldProducts = await this.getAllProduct({ page, nbProduct, reference })
@@ -145,35 +113,35 @@ class ParisFashionShop {
         // VERSION COPIER COLLER
         // const variantFormat = variants.map((v) => {
         //     if (v.type === "ITEM") {
-        //         return new VariantItemFormat(v.colors[0].reference, v.item.size, v.price_sale.unit.value, v.weight, v.stock_qty)
+        //         return new NewVariantFormat(v.colors[0].reference, v.item.size, v.price_sale.unit.value, v.weight, v.stock_qty)
         //     }
         // if (v.type === "PACK") {
-        //     return new VariantPackFormat(v.colors[0].reference, v.packs[0].sizes[0].size, v.price_sale.unit.value, v.weight, v.stock_qty, [{ color: v.colors[0].reference, size: v.packs[0].sizes[0].size, qty: v.packs[0].sizes[0].qty }])
+        //     return new NewVariantFormat(v.colors[0].reference, v.packs[0].sizes[0].size, v.price_sale.unit.value, v.weight, v.stock_qty, [{ color: v.colors[0].reference, size: v.packs[0].sizes[0].size, qty: v.packs[0].sizes[0].qty }])
         // }
         // })
 
         // VERSION AJOUT PACK DE 12
         const { DEFAULT, ...imgs } = product.images
-        const variantFormat: NewVariantFormat[] = []
+        const variantFormat: VariantFormat[] = []
         for (const [color, links] of Object.entries(imgs)) {
             const stock_qty = variants.find(v => v.colors[0].reference == color)?.stock_qty
             if (stock_qty != undefined) {
                 const havePack = variants.some(v => v.type === "PACK")
                 const item_price = havePack ? Math.ceil(product.unit_price * 1.05 * 10) / 10 : product.unit_price
                 const pack_price = havePack ? product.unit_price : Math.floor(product.unit_price / 1.05 * 10) / 10
-                variantFormat.push(new NewVariantFormat(color, "TU", item_price, variants[0].weight, stock_qty))
-                variantFormat.push(new NewVariantFormat(color, "TU", pack_price, variants[0].weight, stock_qty, [{ color, size: "TU", qty: 12 }]))
+                variantFormat.push(new VariantFormat(color, "TU", item_price, variants[0].weight, stock_qty))
+                variantFormat.push(new VariantFormat(color, "TU", pack_price, variants[0].weight, stock_qty, [{ color, size: "TU", qty: 12 }]))
             }
         }
 
         const reference = product.reference.includes("VS") ? product.reference.split("VS")[0] + "VS" + (parseInt(product.reference.split("VS")[1]) + 1) : product.reference + "VS1"
         // Famille : Bijoux : a035J00000185J7QAI Vêtement : a0358000001JibCAAS
         //const productFormat = new ProductFormat(product.brand.name, product.gender, product.family, product.category.id, reference, product.category.labels, product.labels, productInformation.collection.reference, productInformation.country_of_manufacture, productInformation.material_composition.map(m => ({ id: m.id, value: m.percentage })), variantFormat)
-        const productFormat = new NewProductFormat(product.brand.name, product.gender, "a035J00000185J7QAI", product.category.id, reference, productInformation.size_details_tu, productInformation.label, productInformation.description, "PE2026", productInformation.country_of_manufacture, productInformation.material_composition.map(m => ({ id: m.id, value: m.percentage })), variantFormat)
+        const productFormat = new ProductFormat(product.brand.name, product.gender, "a035J00000185J7QAI", product.category.id, reference, productInformation.size_details_tu, productInformation.label, productInformation.description, "PE2026", productInformation.country_of_manufacture, productInformation.material_composition.map(m => ({ id: m.id, value: m.percentage })), variantFormat)
         return productFormat
     }
 
-    public async createProduct(productFormat: NewProductFormat) {
+    public async createProduct(productFormat: ProductFormat) {
         const response = await fetch("https://wholesaler-api.parisfashionshops.com/api/v1/catalog/products", {
             method: "POST",
             body: JSON.stringify({ data: [productFormat] }),
@@ -188,7 +156,7 @@ class ParisFashionShop {
             if ("errors" in newProduct.data[0]) {
                 throw new Error("❌ La nouvelle référence : " + productFormat.reference_code + " n'a pas pu se créer\n❌ Message d'erreur : " + JSON.stringify(newProduct.data[0].errors))
             }
-            return newProduct.data[0] as NewProduct
+            return newProduct.data[0] as Product
         } else {
             console.log(await response.text())
             throw new Error("❌ Une erreur est survenue lors de la création de la référence : " + productFormat.reference_code)
@@ -196,7 +164,7 @@ class ParisFashionShop {
     }
 
     public async downloadImg(page: Page, imgs: { DEFAULT: string } & { [key: string]: string[] }, oldColors: string) {
-        const images: NewProductImageFormat[] = []
+        const images: ImageFormat[] = []
         let defaultColor: string = "";
 
         const { DEFAULT, ...colors } = imgs
@@ -209,7 +177,7 @@ class ParisFashionShop {
                     if (imgSrc) {
                         const imgBuffer = await imgSrc.buffer()
                         const imgJpeg = await sharp(imgBuffer).jpeg({ quality: 90 }).toBuffer()
-                        images.push(new NewProductImageFormat(imgJpeg, color, slot))
+                        images.push(new ImageFormat(imgJpeg, color, slot))
                         if (imgs.DEFAULT == link) {
                             defaultColor = color
                         }
@@ -223,7 +191,7 @@ class ParisFashionShop {
         return { images, defaultColor }
     }
 
-    public async uploadImg(newProductId: string, imgs: NewProductImageFormat[]) {
+    public async uploadImg(newProductId: string, imgs: ImageFormat[]) {
         for (const img of imgs) {
             const formData = new FormData()
             formData.append("image", img.img, { filename: "img.jpg" })
@@ -302,4 +270,4 @@ class ParisFashionShop {
     }
 }
 
-export default ParisFashionShop
+export default ParisFashionShopProduct

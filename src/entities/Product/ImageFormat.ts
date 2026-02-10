@@ -1,4 +1,4 @@
-class NewProductImageFormat{
+class ImageFormat{
     
     constructor(
         public img : Buffer<ArrayBufferLike>,
@@ -7,4 +7,4 @@ class NewProductImageFormat{
     ){}
 }
 
-export default NewProductImageFormat
+export default ImageFormat
