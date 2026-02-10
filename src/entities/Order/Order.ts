@@ -37,7 +37,7 @@ class Order {
 
     public setLastDate(date : Date)
     {
-        if(new Date(this["Date dernière commande"]) < date)
+        if(this["Date dernière commande"] < date)
         {
             this["Date dernière commande"] = date
             this.setNbDay(date)
