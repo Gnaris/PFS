@@ -14,7 +14,7 @@ import { OldProduct, OldProductDetail, OldProductVariant } from "../types/OldPro
 
 class ParisFashionShopProduct {
 
-    constructor(public token : Token){}
+    constructor(public token: Token) { }
 
 
     public async refreshPage({ page, nbProduct, reference = undefined, blacklistRef }: { page: number, nbProduct: number, reference?: string, blacklistRef?: string[] }) {
@@ -33,7 +33,7 @@ class ParisFashionShopProduct {
         let i = 1;
         let nbError = 0
         for (const oldProduct of oldProducts) {
-            if(blacklistRef?.includes(oldProduct.reference)) continue;
+            if (blacklistRef?.includes(oldProduct.reference)) continue;
             try {
                 console.log(`===================================================( ${i} / ${oldProducts.length} )====================================================`)
                 console.log(`⏳ Récupération des données de la référence : ${oldProduct.reference}...`)
@@ -45,7 +45,7 @@ class ParisFashionShopProduct {
                 await this.uploadImg(newProduct.id, images)
                 for (const newVariant of newProduct.variants) {
                     for (const oldVariant of oldVariants) {
-                        if (newVariant.color == oldVariant.colors[0].reference && newVariant.type == oldVariant.type) {
+                        if (newVariant.color == oldVariant.colors[0].reference) {
                             if (oldVariant.stock_qty <= 0) {
                                 variantsOutOfStock.push(newVariant.id)
                             }
@@ -110,33 +110,24 @@ class ParisFashionShopProduct {
     }
 
     public getProductFormat(product: OldProduct, variants: OldProductVariant[], productInformation: OldProductDetail) {
-        // VERSION COPIER COLLER
-        // const variantFormat = variants.map((v) => {
-        //     if (v.type === "ITEM") {
-        //         return new NewVariantFormat(v.colors[0].reference, v.item.size, v.price_sale.unit.value, v.weight, v.stock_qty)
-        //     }
-        // if (v.type === "PACK") {
-        //     return new NewVariantFormat(v.colors[0].reference, v.packs[0].sizes[0].size, v.price_sale.unit.value, v.weight, v.stock_qty, [{ color: v.colors[0].reference, size: v.packs[0].sizes[0].size, qty: v.packs[0].sizes[0].qty }])
-        // }
-        // })
-
-        // VERSION AJOUT PACK DE 12
         const { DEFAULT, ...imgs } = product.images
         const variantFormat: VariantFormat[] = []
         for (const [color, links] of Object.entries(imgs)) {
             const stock_qty = variants.find(v => v.colors[0].reference == color)?.stock_qty
+            const sizes = [...new Set(variants.filter(v => v.type === "ITEM").map(v => v.item.size))];
             if (stock_qty != undefined) {
                 const havePack = variants.some(v => v.type === "PACK")
                 const item_price = havePack ? Math.ceil(product.unit_price * 1.05 * 10) / 10 : product.unit_price
                 const pack_price = havePack ? product.unit_price : Math.floor(product.unit_price / 1.05 * 10) / 10
-                variantFormat.push(new VariantFormat(color, "TU", item_price, variants[0].weight, stock_qty))
-                variantFormat.push(new VariantFormat(color, "TU", pack_price, variants[0].weight, stock_qty, [{ color, size: "TU", qty: 12 }]))
+                sizes.forEach(size => {
+                    variantFormat.push(new VariantFormat("ITEM", color, size, item_price, variants[0].weight, stock_qty))
+                    variantFormat.push(new VariantFormat("PACK", color, size, pack_price, variants[0].weight, stock_qty, [{ color, size : size, qty: 12 }]))
+                })
             }
         }
 
         const reference = product.reference.includes("VS") ? product.reference.split("VS")[0] + "VS" + (parseInt(product.reference.split("VS")[1]) + 1) : product.reference + "VS1"
         // Famille : Bijoux : a035J00000185J7QAI Vêtement : a0358000001JibCAAS
-        //const productFormat = new ProductFormat(product.brand.name, product.gender, product.family, product.category.id, reference, product.category.labels, product.labels, productInformation.collection.reference, productInformation.country_of_manufacture, productInformation.material_composition.map(m => ({ id: m.id, value: m.percentage })), variantFormat)
         const productFormat = new ProductFormat(product.brand.name, product.gender, "a035J00000185J7QAI", product.category.id, reference, productInformation.size_details_tu, productInformation.label, productInformation.description, "PE2026", productInformation.country_of_manufacture, productInformation.material_composition.map(m => ({ id: m.id, value: m.percentage })), variantFormat)
         return productFormat
     }
@@ -171,8 +162,7 @@ class ParisFashionShopProduct {
         for (const [color, links] of Object.entries(colors)) {
             if (oldColors.includes(color)) {
                 let slot = 1
-                for (const link of links) 
-                {
+                for (const link of links) {
                     const imgSrc = await page.goto(link)
                     if (imgSrc) {
                         const imgBuffer = await imgSrc.buffer()

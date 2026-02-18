@@ -1,9 +1,9 @@
 class VariantFormat {
-    public type: "ITEM" | "PACK" = "ITEM";
     public discounted_price_eur_ex_vat = 0;
     public custom_suffix = "";
 
     constructor(
+        public type: "ITEM" | "PACK",
         public color: string,
         public size: string,
         public price_eur_ex_vat: number,
