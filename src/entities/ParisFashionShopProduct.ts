@@ -101,10 +101,18 @@ class ParisFashionShopProduct {
         let response = await fetch("https://wholesaler-api.parisfashionshops.com/api/v1/catalog/products/" + id + "/variants", {
             headers: { Authorization: "Bearer " + this.token?.access_token }
         })
+        if(!response.ok)
+        {
+            throw new Error("Une erreur est survenue lors de la récupération des variants\n" + await response.text())
+        }
         const oldVariants = await response.json()
         response = await fetch("https://wholesaler-api.parisfashionshops.com/api/v1/catalog/products/" + id, {
             headers: { Authorization: "Bearer " + this.token?.access_token }
         })
+        if(!response.ok)
+        {
+            throw new Error("Une erreur est survenue lors de la récupération des informations du produit\n" + await response.text())
+        }
         const oldProductDetail = await response.json()
         return { oldVariants: oldVariants.data as OldProductVariant[], oldProductDetail: oldProductDetail.data as OldProductDetail }
     }
@@ -128,7 +136,7 @@ class ParisFashionShopProduct {
 
         const reference = product.reference.includes("VS") ? product.reference.split("VS")[0] + "VS" + (parseInt(product.reference.split("VS")[1]) + 1) : product.reference + "VS1"
         // Famille : Bijoux : a035J00000185J7QAI Vêtement : a0358000001JibCAAS
-        const productFormat = new ProductFormat(product.brand.name, product.gender, "a035J00000185J7QAI", product.category.id, reference, productInformation.size_details_tu, productInformation.label, productInformation.description, "PE2026", productInformation.country_of_manufacture, productInformation.material_composition.map(m => ({ id: m.id, value: m.percentage })), variantFormat)
+        const productFormat = new ProductFormat(product.brand.name, product.gender, product.family, product.category.id, reference, productInformation.size_details_tu, productInformation.label, productInformation.description, "PE2026", productInformation.country_of_manufacture, productInformation.material_composition.map(m => ({ id: m.id, value: m.percentage })), variantFormat)
         return productFormat
     }
 
@@ -166,7 +174,7 @@ class ParisFashionShopProduct {
                     const imgSrc = await page.goto(link)
                     if (imgSrc) {
                         const imgBuffer = await imgSrc.buffer()
-                        const imgJpeg = await sharp(imgBuffer).jpeg({ quality: 90 }).toBuffer()
+                        const imgJpeg = await sharp(imgBuffer).jpeg({ quality: 100, chromaSubsampling : '4:4:4', mozjpeg : true }).toBuffer()
                         images.push(new ImageFormat(imgJpeg, color, slot))
                         if (imgs.DEFAULT == link) {
                             defaultColor = color
@@ -197,6 +205,7 @@ class ParisFashionShopProduct {
             });
             if (!uploadImgResponse.ok) {
                 console.log(await uploadImgResponse.text())
+                console.log("Couleur de l'image " + img.color)
                 throw new Error("❌ Une erreur est survenue lors de l'upload de l'image\n❗ Pense à renommer cette nouvelle référence en n'importe quoi et le supprimer")
             }
         }
